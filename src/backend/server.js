@@ -1,58 +1,59 @@
 const express = require("express");
 const path = require("path");
-const bodyParser = require("body-parser");
 const NodeCache = require("node-cache");
+const dotenv = require("dotenv");
 
-const axios = require("axios");
-require("dotenv").config();
+dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 8080;
-
-// use memory db for test environment
 const db = new NodeCache();
 
-//use for cache DB
 const ReqRepo = {
-  getData(reqId) {
-    return db.get(`-${reqId}`);
-  },
-  setData(reqId, data) {
-    db.set(`${reqId}`, data);
-  },
+  getData: (reqId) => db.get(reqId),
+  setData: (reqId, data) => db.set(reqId, data),
 };
 
-app.set("view engine", "ejs"); // Set EJS as the view engine
+app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-app.use(express.static("src/frontend/public"));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "../frontend/public")));
 
-app.get("/index", function (req, res) {
-  res.render(path.join(__dirname, "../frontend/index"));
+app.get("/index", (req, res) => {
+  res.render("index");
 });
 
-app.get("/get-some-thing", async (req, res) => {
-  try {
-    return {};
-  } catch (error) {}
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
+
+app.get(
+  "/get-some-thing",
+  asyncHandler(async (req, res) => {
+    res.json({});
+  })
+);
+
+app.post(
+  "/create-some-thing",
+  asyncHandler(async (req, res) => {
+    // post data or some logic here
+    res.json({});
+  })
+);
+
+app.post(
+  "/webhook",
+  asyncHandler(async (req, res) => {
+    ReqRepo.setData(1, 1);
+    res.sendStatus(200);
+  })
+);
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Internal Server Error" });
 });
 
-// API tạo yêu cầu thanh toán
-app.post("/create-some-thing", async (req, res) => {
-  try {
-    //post data or some logic here
-
-    return {};
-  } catch (error) {
-    //show error here
-  }
+app.listen(port, () => {
+  console.log(`Server started at http://localhost:${port}`);
 });
-
-// Link for config webhook
-app.post("/webhook", async (req, res) => {
-  ReqRepo.setData(1, 1);
-  return res.json(200);
-});
-
-app.listen(port);
-console.log("Server started at http://localhost:" + port);
